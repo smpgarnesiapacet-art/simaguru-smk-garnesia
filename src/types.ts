@@ -19,6 +19,8 @@ export interface TeacherSchoolProfile {
   kepalaSekolah: string;
   nipKepalaSekolah: string;
   kktpDefault: number;
+  logoDinasDataUrl?: string;
+  logoSekolahDataUrl?: string;
 }
 
 export interface ClassScheduleSlot {

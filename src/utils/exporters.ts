@@ -23,6 +23,53 @@ async function loadImageAsDataUrl(url: string): Promise<string | null> {
   }
 }
 
+export async function resizeImageFileToDataUrl(
+  file: File,
+  maxDimension = 280
+): Promise<string> {
+  const rawDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      typeof reader.result === 'string'
+        ? resolve(reader.result)
+        : reject(new Error('Gagal membaca file gambar'));
+    reader.onerror = () => reject(new Error('Gagal membaca file gambar'));
+    reader.readAsDataURL(file);
+  });
+
+  return await new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(rawDataUrl);
+        return;
+      }
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      const isTransparentType =
+        file.type === 'image/png' ||
+        file.type === 'image/webp' ||
+        file.type === 'image/svg+xml';
+      resolve(
+        canvas.toDataURL(isTransparentType ? 'image/png' : 'image/jpeg', 0.9)
+      );
+    };
+    img.onerror = () => reject(new Error('Format gambar tidak valid'));
+    img.src = rawDataUrl;
+  });
+}
+
+function getPdfImageFormat(dataUrl: string): 'PNG' | 'JPEG' {
+  return dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+}
+
 export function exportExcelSheet(
   fileName: string,
   sheetName: string,
@@ -104,13 +151,34 @@ async function drawKopSuratAndFooter(
   subtitleLines: string[]
 ): Promise<number> {
   const pageWidth = doc.internal.pageSize.getWidth();
-  const logoData = await loadImageAsDataUrl(SCHOOL_LOGO_PATH);
+  const leftDinasLogo = profile.logoDinasDataUrl || null;
+  const rightSchoolLogo =
+    profile.logoSekolahDataUrl || (await loadImageAsDataUrl(SCHOOL_LOGO_PATH));
 
-  if (logoData) {
-    doc.addImage(logoData, 'JPEG', 14, 10, 20, 20);
+  if (leftDinasLogo) {
+    try {
+      doc.addImage(leftDinasLogo, getPdfImageFormat(leftDinasLogo), 14, 10, 20, 20);
+    } catch {
+      // ignore invalid image
+    }
   }
 
-  const centerX = pageWidth / 2 + 6;
+  if (rightSchoolLogo) {
+    try {
+      doc.addImage(
+        rightSchoolLogo,
+        getPdfImageFormat(rightSchoolLogo),
+        pageWidth - 34,
+        10,
+        20,
+        20
+      );
+    } catch {
+      // ignore invalid image
+    }
+  }
+
+  const centerX = pageWidth / 2;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text('PEMERINTAH PROVINSI JAWA BARAT · DINAS PENDIDIKAN', centerX, 14, { align: 'center' });

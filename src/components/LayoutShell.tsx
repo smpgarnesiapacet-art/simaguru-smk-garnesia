@@ -66,8 +66,8 @@ export function LayoutShell({
         <div className="flex items-center gap-3 min-w-0">
           {!logoError ? (
             <img
-              src={SCHOOL_LOGO_PATH}
-              alt="Logo SMK Garnesia"
+              src={state.profile.logoSekolahDataUrl || SCHOOL_LOGO_PATH}
+              alt={`Logo ${state.profile.instansi}`}
               referrerPolicy="no-referrer"
               onError={() => setLogoError(true)}
               className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5"

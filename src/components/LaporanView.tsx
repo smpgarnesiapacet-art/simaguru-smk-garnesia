@@ -396,12 +396,15 @@ export function LaporanView() {
       <div className="print-sheet rounded-xl border border-slate-300 bg-white p-6 text-slate-900 shadow-xs sm:p-10">
         {/* Official Kop Surat */}
         <div className="flex items-center gap-4 border-b-2 border-slate-900 pb-4">
-          <img
-            src={SCHOOL_LOGO_PATH}
-            alt="Logo SMK Garnesia"
-            referrerPolicy="no-referrer"
-            className="h-16 w-16 shrink-0 object-contain"
-          />
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center">
+            {state.profile.logoDinasDataUrl && (
+              <img
+                src={state.profile.logoDinasDataUrl}
+                alt="Logo Dinas Pendidikan"
+                className="h-16 w-16 object-contain"
+              />
+            )}
+          </div>
           <div className="flex-1 text-center">
             <div className="text-xs font-bold tracking-wider text-slate-700">
               PEMERINTAH PROVINSI JAWA BARAT · DINAS PENDIDIKAN
@@ -415,6 +418,14 @@ export function LaporanView() {
             <div className="text-xs text-slate-600">
               {state.profile.teleponEmail}
             </div>
+          </div>
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center">
+            <img
+              src={state.profile.logoSekolahDataUrl || SCHOOL_LOGO_PATH}
+              alt="Logo Sekolah"
+              referrerPolicy="no-referrer"
+              className="h-16 w-16 object-contain"
+            />
           </div>
         </div>
 

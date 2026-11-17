@@ -1,8 +1,9 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Download,
   Edit3,
   FileSpreadsheet,
+  ImagePlus,
   Plus,
   Search,
   Trash2,
@@ -14,6 +15,7 @@ import {
   downloadStudentImportTemplate,
   exportExcelSheet,
   parseStudentsFromSpreadsheet,
+  resizeImageFileToDataUrl,
   SCHOOL_LOGO_PATH,
 } from '../utils/exporters';
 
@@ -25,6 +27,12 @@ export function MasterDataView() {
 
   // Profile form state
   const [profileForm, setProfileForm] = useState(state.profile);
+  const dinasLogoInputRef = useRef<HTMLInputElement | null>(null);
+  const sekolahLogoInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setProfileForm(state.profile);
+  }, [state.profile]);
 
   // Class form state
   const [showClassForm, setShowClassForm] = useState(false);
@@ -94,6 +102,48 @@ export function MasterDataView() {
     updateState(
       (prev) => ({ ...prev, profile: profileForm }),
       'Profil Guru & Identitas Sekolah berhasil disimpan'
+    );
+  };
+
+  const handleLogoUpload = async (
+    target: 'dinas' | 'sekolah',
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImageFileToDataUrl(file, 280);
+      const field =
+        target === 'dinas' ? 'logoDinasDataUrl' : 'logoSekolahDataUrl';
+      setProfileForm((prev) => ({ ...prev, [field]: dataUrl }));
+      updateState(
+        (prev) => ({
+          ...prev,
+          profile: { ...prev.profile, [field]: dataUrl },
+        }),
+        target === 'dinas'
+          ? 'Logo Dinas Pendidikan berhasil diunggah'
+          : 'Logo Sekolah berhasil diunggah'
+      );
+    } catch {
+      notify('Gagal memproses file gambar logo', 'error');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleClearLogo = (target: 'dinas' | 'sekolah') => {
+    const field =
+      target === 'dinas' ? 'logoDinasDataUrl' : 'logoSekolahDataUrl';
+    setProfileForm((prev) => ({ ...prev, [field]: '' }));
+    updateState(
+      (prev) => ({
+        ...prev,
+        profile: { ...prev.profile, [field]: '' },
+      }),
+      target === 'dinas'
+        ? 'Logo Dinas Pendidikan dihapus'
+        : 'Logo Sekolah dikembalikan ke logo default'
     );
   };
 
@@ -580,8 +630,112 @@ export function MasterDataView() {
             </div>
           </form>
 
-          {/* Live Kop Surat Preview */}
+          {/* Upload Logo & Live Kop Surat Preview */}
           <div className="space-y-4 lg:col-span-5">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                Upload Logo Kop Surat (Kiri &amp; Kanan)
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Format PNG transparan atau JPG. Otomatis tampil pada pratinjau cetak &amp; ekspor PDF.
+              </p>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Logo Dinas Pendidikan (Kiri) */}
+                <div className="rounded-lg border border-slate-200 p-3.5 dark:border-slate-800">
+                  <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    Logo Dinas Pendidikan (Kiri)
+                  </div>
+                  <div className="mt-2.5 flex items-center gap-3">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-950">
+                      {profileForm.logoDinasDataUrl ? (
+                        <img
+                          src={profileForm.logoDinasDataUrl}
+                          alt="Logo Dinas Pendidikan"
+                          className="h-12 w-12 object-contain"
+                        />
+                      ) : (
+                        <ImagePlus className="h-5 w-5 text-slate-400" />
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <input
+                        ref={dinasLogoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        onChange={(e) => {
+                          void handleLogoUpload('dinas', e);
+                        }}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => dinasLogoInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-800 dark:bg-teal-600 dark:hover:bg-teal-700 whitespace-nowrap"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Upload Logo</span>
+                      </button>
+                      {profileForm.logoDinasDataUrl && (
+                        <button
+                          type="button"
+                          onClick={() => handleClearLogo('dinas')}
+                          className="text-left text-[11px] font-medium text-red-600 hover:underline dark:text-red-400"
+                        >
+                          Hapus Logo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logo Sekolah (Kanan) */}
+                <div className="rounded-lg border border-slate-200 p-3.5 dark:border-slate-800">
+                  <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    Logo Sekolah (Kanan)
+                  </div>
+                  <div className="mt-2.5 flex items-center gap-3">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700">
+                      <img
+                        src={profileForm.logoSekolahDataUrl || SCHOOL_LOGO_PATH}
+                        alt="Logo Sekolah"
+                        referrerPolicy="no-referrer"
+                        className="h-12 w-12 object-contain"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <input
+                        ref={sekolahLogoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        onChange={(e) => {
+                          void handleLogoUpload('sekolah', e);
+                        }}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => sekolahLogoInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-800 dark:bg-teal-600 dark:hover:bg-teal-700 whitespace-nowrap"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Upload Logo</span>
+                      </button>
+                      {profileForm.logoSekolahDataUrl && (
+                        <button
+                          type="button"
+                          onClick={() => handleClearLogo('sekolah')}
+                          className="text-left text-[11px] font-medium text-slate-600 hover:underline dark:text-slate-400"
+                        >
+                          Pakai Default
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                 Pratinjau Kop Surat Resmi Dokumen
@@ -591,26 +745,46 @@ export function MasterDataView() {
               </p>
 
               <div className="mt-4 rounded-lg border border-slate-300 bg-white p-4 text-slate-900">
-                <div className="flex items-center gap-3 border-b-2 border-slate-900 pb-3">
-                  <img
-                    src={SCHOOL_LOGO_PATH}
-                    alt="Logo SMK Garnesia"
-                    referrerPolicy="no-referrer"
-                    className="h-14 w-14 shrink-0 object-contain"
-                  />
+                <div className="flex items-center gap-2 border-b-2 border-slate-900 pb-3">
+                  {/* Kiri: Logo Dinas Pendidikan */}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center">
+                    {profileForm.logoDinasDataUrl ? (
+                      <img
+                        src={profileForm.logoDinasDataUrl}
+                        alt="Logo Dinas Pendidikan"
+                        className="h-12 w-12 object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-11 w-11 items-center justify-center rounded border border-dashed border-slate-300 text-center text-[8px] leading-tight text-slate-400">
+                        Logo Dinas
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tengah: Identitas Kop */}
                   <div className="flex-1 text-center">
-                    <div className="text-[10px] font-bold tracking-wide text-slate-700">
+                    <div className="text-[9.5px] font-bold tracking-wide text-slate-700">
                       PEMERINTAH PROVINSI JAWA BARAT · DINAS PENDIDIKAN
                     </div>
-                    <div className="text-base font-bold tracking-tight text-slate-900">
+                    <div className="text-sm font-bold tracking-tight text-slate-900">
                       {profileForm.instansi.toUpperCase()}
                     </div>
-                    <div className="text-[10px] text-slate-600">
+                    <div className="text-[9.5px] text-slate-600">
                       {profileForm.alamatSekolah} · NPSN: {profileForm.npsn}
                     </div>
-                    <div className="text-[10px] text-slate-600">
+                    <div className="text-[9.5px] text-slate-600">
                       {profileForm.teleponEmail}
                     </div>
+                  </div>
+
+                  {/* Kanan: Logo Sekolah */}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center">
+                    <img
+                      src={profileForm.logoSekolahDataUrl || SCHOOL_LOGO_PATH}
+                      alt="Logo Sekolah"
+                      referrerPolicy="no-referrer"
+                      className="h-12 w-12 object-contain"
+                    />
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-4 pt-4 text-[11px] text-slate-800">
